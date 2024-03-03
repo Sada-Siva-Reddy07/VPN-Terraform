@@ -1,0 +1,86 @@
+# Configure the AWS provider
+provider "aws" {
+  region = "eu-north-1" # Change this to your preferred AWS region
+}
+
+# Create a VPC
+resource "aws_vpc" "my_vpc" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+
+  tags = {
+    Name = "my-vpc"
+  }
+}
+
+# Create subnets in two availability zones
+resource "aws_subnet" "subnet_1" {
+  vpc_id                  = aws_vpc.my_vpc.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "eu-north-1b"
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "subnet-1"
+  }
+}
+
+resource "aws_subnet" "subnet_2" {
+  vpc_id                  = aws_vpc.my_vpc.id
+  cidr_block              = "10.0.2.0/24"
+  availability_zone       = "eu-north-1c"
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "subnet-2"
+  }
+}
+
+# Create an Internet Gateway for public subnet access
+resource "aws_internet_gateway" "my_igw" {
+  vpc_id = aws_vpc.my_vpc.id
+
+  tags = {
+    Name = "my-igw"
+  }
+}
+
+resource "aws_vpn_gateway" "my_vpn_gateway" {
+  vpc_id = aws_vpc.my_vpc.id
+
+  tags = {
+    Name = "my-vpn-gateway"
+  }
+}
+
+# Create a Customer Gateway (Replace placeholders with actual on-premises details)
+resource "aws_customer_gateway" "my_customer_gateway" {
+  bgp_asn    = 65000
+  ip_address = "16.170.236.246" # Replace with your on-premises public IP address
+  type       = "ipsec.1"
+
+  tags = {
+    Name = "my-customer-gateway"
+  }
+}
+
+# Create a VPN Connection
+resource "aws_vpn_connection" "my_vpn_connection" {
+  customer_gateway_id = aws_customer_gateway.my_customer_gateway.id
+  vpn_gateway_id      = aws_vpn_gateway.my_vpn_gateway.id
+
+  type               = "ipsec.1"
+  static_routes_only = true
+tunnel1_preshared_key = "ghfhv34423bxc"
+}
+
+#output of Tunnel 1 IP address
+output "AWStunnel1IP" {
+  value = aws_vpn_connection.my_vpn_connection.tunnel1_address
+}
+
+#output of Tunnel 2 IP address
+output "AWStunnel2IP" {
+  value = aws_vpn_connection.my_vpn_connection.tunnel2_address
+}
